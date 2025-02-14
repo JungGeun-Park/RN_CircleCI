@@ -53,11 +53,13 @@ jobs:
             echo "----------------------------------------"
             echo "📍 Checking build settings for Bundle ID:"
             
-            # Try to extract Bundle ID from Info.plist first
-            BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" */Info.plist)
+            # Find Info.plist in subdirectories
+            INFO_PLIST_PATH=$(find . -name "Info.plist" -type f | head -n 1)
             
-            if [ -z "$BUNDLE_ID" ] || [ "$BUNDLE_ID" = "NO" ]; then
-              # If Info.plist method fails, try xcodebuild
+            if [ -n "$INFO_PLIST_PATH" ]; then
+              BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$INFO_PLIST_PATH")
+            else
+              # If Info.plist not found, try xcodebuild
               BUNDLE_ID=$(xcodebuild -showBuildSettings | grep "PRODUCT_BUNDLE_IDENTIFIER" | awk -F ' = ' '{print $2}' | tr -d ' ')
             fi
             
