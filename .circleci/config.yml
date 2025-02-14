@@ -152,24 +152,31 @@ jobs:
       - run:
           name: Generate Hash
           command: |
-            # 스크립트에 실행 권한 부여
-            HASH_SCRIPT=$(find . -name "generate_hash" -path "*/AppSealingSDK/*")
+            cd /Users/distiller/project
+            
+            # IPA 파일 경로 설정
+            IPA_OUTPUT_PATH="/Users/distiller/project/ios/build/ios/ipa"
+            
+            # AppSealingSDK 디렉토리에서 generate_hash 스크립트 찾기
+            HASH_SCRIPT=$(find . -type f -name "generate_hash" -path "*/AppSealingSDK/*" 2>/dev/null)
             
             if [ -z "$HASH_SCRIPT" ]; then
               echo "❌ ERROR: generate_hash script not found in AppSealingSDK directory"
               exit 1
             fi
             
+            echo "✅ Found hash script: ${HASH_SCRIPT}"
             chmod +x "$HASH_SCRIPT"
             
-            IPA_FILE=$(find "${IPA_OUTPUT_PATH}" -name "*.ipa" -type f)
+            # IPA 파일 찾기
+            IPA_FILE=$(find "${IPA_OUTPUT_PATH}" -type f -name "*.ipa" 2>/dev/null)
             if [ -z "${IPA_FILE}" ]; then
               echo "❌ ERROR: No IPA file found in ${IPA_OUTPUT_PATH}"
               exit 1
             fi
             echo "✅ Found IPA file: ${IPA_FILE}"
-
-            # IPA 파일 경로를 파라미터로 전달하여 스크립트 실행
+            
+            # 스크립트 실행
             "$HASH_SCRIPT" "${IPA_FILE}"
 
       - run:
