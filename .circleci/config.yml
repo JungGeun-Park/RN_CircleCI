@@ -33,18 +33,18 @@ jobs:
             cd /Users/distiller/project/ios
             pod install
 
-      # - run:
-      #     name: Install Apple Certificate
-      #     command: |
-      #       mkdir -p /Users/distiller/Library/Developer/Xcode/UserData/Provisioning\ Profiles/
-      #       cp /Users/distiller/project/ios/profile.mobileprovision /Users/distiller/Library/Developer/Xcode/UserData/Provisioning\ Profiles/
-      #       security create-keychain -p "circle" build.keychain
-      #       security import /Users/distiller/project/ios/distribution.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-      #       security list-keychains -s build.keychain
-      #       security default-keychain -s build.keychain
-      #       security unlock-keychain -p "circle" build.keychain
-      #       security set-keychain-settings -t 3600 -u build.keychain
-      #       security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "circle" build.keychain
+      - run:
+          name: Install Apple Certificate
+          command: |
+            mkdir -p /Users/distiller/Library/Developer/Xcode/UserData/Provisioning\ Profiles/
+            cp /Users/distiller/project/ios/profile.mobileprovision /Users/distiller/Library/Developer/Xcode/UserData/Provisioning\ Profiles/
+            security create-keychain -p "circle" build.keychain
+            security import /Users/distiller/project/ios/distribution.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+            security list-keychains -s build.keychain
+            security default-keychain -s build.keychain
+            security unlock-keychain -p "circle" build.keychain
+            security set-keychain-settings -t 3600 -u build.keychain
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "circle" build.keychain
 
       - run:
           name: Extract Bundle ID
@@ -99,7 +99,21 @@ jobs:
           command: |
             cd /Users/distiller/project/ios
             buildNumber=$CIRCLE_BUILD_NUM
-            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $buildNumber" "$(pwd)/*/Info.plist"
+            
+            # Get project name
+            PROJECT_NAME=$(ls *.xcodeproj | sed 's/\.xcodeproj//')
+            
+            # Try to update build number using agvtool
+            xcrun agvtool new-version -all "$buildNumber"
+            
+            if [ $? -ne 0 ]; then
+              # Fallback: Update build settings directly
+              xcodebuild -project ${PROJECT_NAME}.xcodeproj \
+                -configuration Release \
+                CURRENT_PROJECT_VERSION="$buildNumber" \
+                build
+            fi
+            
             echo "✅ Build number updated to: $buildNumber"
 
       - run:
