@@ -18,56 +18,51 @@ jobs:
     steps:
       - checkout
 
-      - run:
-          name: Install Dependencies
-          command: |
-            brew install node
-            brew install watchman
-            npm install -g yarn
-            cd /Users/distiller/project
-            yarn install
+      # - run:
+      #     name: Install Dependencies
+      #     command: |
+      #       brew install node
+      #       brew install watchman
+      #       npm install -g yarn
+      #       cd /Users/distiller/project
+      #       yarn install
 
-      - run:
-          name: Install Cocoapods
-          command: |
-            cd /Users/distiller/project/ios
-            pod install
+      # - run:
+      #     name: Install Cocoapods
+      #     command: |
+      #       cd /Users/distiller/project/ios
+      #       pod install
 
-      - run:
-          name: Install Apple Certificate
-          command: |
-            mkdir -p /Users/distiller/Library/Developer/Xcode/UserData/Provisioning\ Profiles/
-            cp /Users/distiller/project/ios/profile.mobileprovision /Users/distiller/Library/Developer/Xcode/UserData/Provisioning\ Profiles/
-            security create-keychain -p "circle" build.keychain
-            security import /Users/distiller/project/ios/distribution.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-            security list-keychains -s build.keychain
-            security default-keychain -s build.keychain
-            security unlock-keychain -p "circle" build.keychain
-            security set-keychain-settings -t 3600 -u build.keychain
-            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "circle" build.keychain
+      # - run:
+      #     name: Install Apple Certificate
+      #     command: |
+      #       mkdir -p /Users/distiller/Library/Developer/Xcode/UserData/Provisioning\ Profiles/
+      #       cp /Users/distiller/project/ios/profile.mobileprovision /Users/distiller/Library/Developer/Xcode/UserData/Provisioning\ Profiles/
+      #       security create-keychain -p "circle" build.keychain
+      #       security import /Users/distiller/project/ios/distribution.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+      #       security list-keychains -s build.keychain
+      #       security default-keychain -s build.keychain
+      #       security unlock-keychain -p "circle" build.keychain
+      #       security set-keychain-settings -t 3600 -u build.keychain
+      #       security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "circle" build.keychain
 
       - run:
           name: Extract Bundle ID
           command: |
             cd /Users/distiller/project/ios
-            
             echo "----------------------------------------"
-            echo "📍 Checking project.pbxproj contents:"
-            cat *.xcodeproj/project.pbxproj | grep -A 5 "PRODUCT_BUNDLE_IDENTIFIER"
+            echo "📍 Checking build settings for Bundle ID:"
             
-            echo "----------------------------------------"
-            echo "📍 Trying to extract Bundle ID from project.pbxproj:"
-            BUNDLE_ID=$(grep -A 1 "PRODUCT_BUNDLE_IDENTIFIER =" *.xcodeproj/project.pbxproj | tail -n1 | awk -F'"' '{print $2}')
-            echo "First attempt result: ${BUNDLE_ID}"
+            # Release configuration에서 Bundle ID 추출 시도
+            BUNDLE_ID=$(xcodebuild -workspace *.xcworkspace -scheme Runner -configuration Release -showBuildSettings | grep "PRODUCT_BUNDLE_IDENTIFIER" | awk -F ' = ' '{print $2}' | tr -d ' ')
             
-            if [ -z "$BUNDLE_ID" ]; then
-              echo "📍 Trying alternate method - direct grep:"
-              BUNDLE_ID=$(grep -A 1 "PRODUCT_BUNDLE_IDENTIFIER" *.xcodeproj/project.pbxproj | grep -v "PRODUCT_BUNDLE_IDENTIFIER" | awk -F'"' '{print $2}')
-              echo "Second attempt result: ${BUNDLE_ID}"
+            if [ -z "$BUNDLE_ID" ] || [ "$BUNDLE_ID" = "NO" ]; then
+              # Info.plist에서 Bundle ID 추출 시도
+              BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" */Info.plist)
             fi
             
             if [ -z "$BUNDLE_ID" ] || [ "$BUNDLE_ID" = "NO" ]; then
-              echo "❌ ERROR: Could not extract valid Bundle ID. Found: ${BUNDLE_ID}"
+              echo "❌ ERROR: Could not extract valid Bundle ID"
               exit 1
             fi
             
@@ -77,82 +72,82 @@ jobs:
             echo "export BUNDLE_ID=$BUNDLE_ID" >> $BASH_ENV
             source $BASH_ENV
 
-      - run:
-          name: Create exportOptions.plist
-          command: |
-            cat > /Users/distiller/project/ios/exportOptions.plist \<< EOF
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-            <plist version="1.0">
-            <dict>
-                <key>method</key>
-                <string>app-store</string>
-                <key>teamID</key>
-                <string>${TEAM_ID}</string>
-                <key>signingStyle</key>
-                <string>manual</string>
-                <key>signingCertificate</key>
-                <string>iPhone Distribution</string>
-                <key>stripSwiftSymbols</key>
-                <true/>
-                <key>uploadBitcode</key>
-                <false/>
-                <key>uploadSymbols</key>
-                <true/>
-                <key>provisioningProfiles</key>
-                <dict>
-                    <key>${BUNDLE_ID}</key>
-                    <string>${PROVISIONING_PROFILE_NAME}</string>
-                </dict>
-            </dict>
-            </plist>
-            EOF
+      # - run:
+      #     name: Create exportOptions.plist
+      #     command: |
+      #       cat > /Users/distiller/project/ios/exportOptions.plist \<< EOF
+      #       <?xml version="1.0" encoding="UTF-8"?>
+      #       <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+      #       <plist version="1.0">
+      #       <dict>
+      #           <key>method</key>
+      #           <string>app-store</string>
+      #           <key>teamID</key>
+      #           <string>${TEAM_ID}</string>
+      #           <key>signingStyle</key>
+      #           <string>manual</string>
+      #           <key>signingCertificate</key>
+      #           <string>iPhone Distribution</string>
+      #           <key>stripSwiftSymbols</key>
+      #           <true/>
+      #           <key>uploadBitcode</key>
+      #           <false/>
+      #           <key>uploadSymbols</key>
+      #           <true/>
+      #           <key>provisioningProfiles</key>
+      #           <dict>
+      #               <key>${BUNDLE_ID}</key>
+      #               <string>${PROVISIONING_PROFILE_NAME}</string>
+      #           </dict>
+      #       </dict>
+      #       </plist>
+      #       EOF
 
-      - run:
-          name: Increment Build Number
-          command: |
-            cd /Users/distiller/project/ios
-            buildNumber=$CIRCLE_BUILD_NUM
-            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $buildNumber" "$(pwd)/*/Info.plist"
-            echo "✅ Build number updated to: $buildNumber"
+      # - run:
+      #     name: Increment Build Number
+      #     command: |
+      #       cd /Users/distiller/project/ios
+      #       buildNumber=$CIRCLE_BUILD_NUM
+      #       /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $buildNumber" "$(pwd)/*/Info.plist"
+      #       echo "✅ Build number updated to: $buildNumber"
 
-      - run:
-          name: Build and Archive
-          command: |
-            cd /Users/distiller/project/ios
-            mkdir -p build/ios
+      # - run:
+      #     name: Build and Archive
+      #     command: |
+      #       cd /Users/distiller/project/ios
+      #       mkdir -p build/ios
             
-            xcodebuild archive \
-              -workspace *.xcworkspace \
-              -scheme ${BUNDLE_ID} \
-              -configuration Release \
-              -archivePath build/ios/app.xcarchive \
-              -allowProvisioningUpdates \
-              CODE_SIGN_STYLE=Manual \
-              DEVELOPMENT_TEAM=${TEAM_ID} \
-              PROVISIONING_PROFILE_SPECIFIER="${PROVISIONING_PROFILE_NAME}" \
-              CODE_SIGN_IDENTITY="iPhone Distribution"
+      #       xcodebuild archive \
+      #         -workspace *.xcworkspace \
+      #         -scheme ${BUNDLE_ID} \
+      #         -configuration Release \
+      #         -archivePath build/ios/app.xcarchive \
+      #         -allowProvisioningUpdates \
+      #         CODE_SIGN_STYLE=Manual \
+      #         DEVELOPMENT_TEAM=${TEAM_ID} \
+      #         PROVISIONING_PROFILE_SPECIFIER="${PROVISIONING_PROFILE_NAME}" \
+      #         CODE_SIGN_IDENTITY="iPhone Distribution"
 
-            xcodebuild -exportArchive \
-              -archivePath build/ios/app.xcarchive \
-              -exportOptionsPlist exportOptions.plist \
-              -exportPath build/ios/ipa \
-              -allowProvisioningUpdates
+      #       xcodebuild -exportArchive \
+      #         -archivePath build/ios/app.xcarchive \
+      #         -exportOptionsPlist exportOptions.plist \
+      #         -exportPath build/ios/ipa \
+      #         -allowProvisioningUpdates
 
-      - run:
-          name: Upload to App Store Connect
-          command: |
-            cd /Users/distiller/project/ios
-            IPA_FILE=$(find build/ios/ipa -name "*.ipa" -type f)
-            xcrun altool --upload-app \
-              --type ios \
-              --file "${IPA_FILE}" \
-              --username "$APPLE_ID" \
-              --password "$APP_SPECIFIC_PASSWORD" \
-              --verbose
+      # - run:
+      #     name: Upload to App Store Connect
+      #     command: |
+      #       cd /Users/distiller/project/ios
+      #       IPA_FILE=$(find build/ios/ipa -name "*.ipa" -type f)
+      #       xcrun altool --upload-app \
+      #         --type ios \
+      #         --file "${IPA_FILE}" \
+      #         --username "$APPLE_ID" \
+      #         --password "$APP_SPECIFIC_PASSWORD" \
+      #         --verbose
 
-      - store_artifacts:
-          path: /Users/distiller/project/ios/build/ios/ipa
+      # - store_artifacts:
+      #     path: /Users/distiller/project/ios/build/ios/ipa
 
 workflows:
   version: 2
