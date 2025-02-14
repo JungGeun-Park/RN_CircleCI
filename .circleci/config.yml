@@ -50,9 +50,7 @@ jobs:
           name: Extract Bundle ID
           command: |
             cd /Users/distiller/project/ios
-            echo "----------------------------------------"
-            echo "📍 Checking build settings for Bundle ID:"
-            
+           
             # Extract Bundle ID with better parsing to remove NO prefix
             BUNDLE_ID=$(xcodebuild -showBuildSettings -configuration Release | grep "PRODUCT_BUNDLE_IDENTIFIER =" | awk -F " = " '{print $2}' | grep -v "^NO" | head -n 1)
             
@@ -62,88 +60,85 @@ jobs:
               exit 1
             fi
             
-            echo "✅ Successfully extracted Bundle ID: ${BUNDLE_ID}"
-            echo "----------------------------------------"
-            
             echo "export BUNDLE_ID='${BUNDLE_ID}'" >> $BASH_ENV
             source $BASH_ENV
 
-      # - run:
-      #     name: Create exportOptions.plist
-      #     command: |
-      #       cat > /Users/distiller/project/ios/exportOptions.plist \<< EOF
-      #       <?xml version="1.0" encoding="UTF-8"?>
-      #       <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-      #       <plist version="1.0">
-      #       <dict>
-      #           <key>method</key>
-      #           <string>app-store</string>
-      #           <key>teamID</key>
-      #           <string>${TEAM_ID}</string>
-      #           <key>signingStyle</key>
-      #           <string>manual</string>
-      #           <key>signingCertificate</key>
-      #           <string>iPhone Distribution</string>
-      #           <key>stripSwiftSymbols</key>
-      #           <true/>
-      #           <key>uploadBitcode</key>
-      #           <false/>
-      #           <key>uploadSymbols</key>
-      #           <true/>
-      #           <key>provisioningProfiles</key>
-      #           <dict>
-      #               <key>${BUNDLE_ID}</key>
-      #               <string>${PROVISIONING_PROFILE_NAME}</string>
-      #           </dict>
-      #       </dict>
-      #       </plist>
-      #       EOF
+      - run:
+          name: Create exportOptions.plist
+          command: |
+            cat > /Users/distiller/project/ios/exportOptions.plist \<< EOF
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+            <plist version="1.0">
+            <dict>
+                <key>method</key>
+                <string>app-store</string>
+                <key>teamID</key>
+                <string>${TEAM_ID}</string>
+                <key>signingStyle</key>
+                <string>manual</string>
+                <key>signingCertificate</key>
+                <string>iPhone Distribution</string>
+                <key>stripSwiftSymbols</key>
+                <true/>
+                <key>uploadBitcode</key>
+                <false/>
+                <key>uploadSymbols</key>
+                <true/>
+                <key>provisioningProfiles</key>
+                <dict>
+                    <key>${BUNDLE_ID}</key>
+                    <string>${PROVISIONING_PROFILE_NAME}</string>
+                </dict>
+            </dict>
+            </plist>
+            EOF
 
-      # - run:
-      #     name: Increment Build Number
-      #     command: |
-      #       cd /Users/distiller/project/ios
-      #       buildNumber=$CIRCLE_BUILD_NUM
-      #       /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $buildNumber" "$(pwd)/*/Info.plist"
-      #       echo "✅ Build number updated to: $buildNumber"
+      - run:
+          name: Increment Build Number
+          command: |
+            cd /Users/distiller/project/ios
+            buildNumber=$CIRCLE_BUILD_NUM
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $buildNumber" "$(pwd)/*/Info.plist"
+            echo "✅ Build number updated to: $buildNumber"
 
-      # - run:
-      #     name: Build and Archive
-      #     command: |
-      #       cd /Users/distiller/project/ios
-      #       mkdir -p build/ios
+      - run:
+          name: Build and Archive
+          command: |
+            cd /Users/distiller/project/ios
+            mkdir -p build/ios
             
-      #       xcodebuild archive \
-      #         -workspace *.xcworkspace \
-      #         -scheme ${BUNDLE_ID} \
-      #         -configuration Release \
-      #         -archivePath build/ios/app.xcarchive \
-      #         -allowProvisioningUpdates \
-      #         CODE_SIGN_STYLE=Manual \
-      #         DEVELOPMENT_TEAM=${TEAM_ID} \
-      #         PROVISIONING_PROFILE_SPECIFIER="${PROVISIONING_PROFILE_NAME}" \
-      #         CODE_SIGN_IDENTITY="iPhone Distribution"
+            xcodebuild archive \
+              -workspace *.xcworkspace \
+              -scheme ${BUNDLE_ID} \
+              -configuration Release \
+              -archivePath build/ios/app.xcarchive \
+              -allowProvisioningUpdates \
+              CODE_SIGN_STYLE=Manual \
+              DEVELOPMENT_TEAM=${TEAM_ID} \
+              PROVISIONING_PROFILE_SPECIFIER="${PROVISIONING_PROFILE_NAME}" \
+              CODE_SIGN_IDENTITY="iPhone Distribution"
 
-      #       xcodebuild -exportArchive \
-      #         -archivePath build/ios/app.xcarchive \
-      #         -exportOptionsPlist exportOptions.plist \
-      #         -exportPath build/ios/ipa \
-      #         -allowProvisioningUpdates
+            xcodebuild -exportArchive \
+              -archivePath build/ios/app.xcarchive \
+              -exportOptionsPlist exportOptions.plist \
+              -exportPath build/ios/ipa \
+              -allowProvisioningUpdates
 
-      # - run:
-      #     name: Upload to App Store Connect
-      #     command: |
-      #       cd /Users/distiller/project/ios
-      #       IPA_FILE=$(find build/ios/ipa -name "*.ipa" -type f)
-      #       xcrun altool --upload-app \
-      #         --type ios \
-      #         --file "${IPA_FILE}" \
-      #         --username "$APPLE_ID" \
-      #         --password "$APP_SPECIFIC_PASSWORD" \
-      #         --verbose
+      - run:
+          name: Upload to App Store Connect
+          command: |
+            cd /Users/distiller/project/ios
+            IPA_FILE=$(find build/ios/ipa -name "*.ipa" -type f)
+            xcrun altool --upload-app \
+              --type ios \
+              --file "${IPA_FILE}" \
+              --username "$APPLE_ID" \
+              --password "$APP_SPECIFIC_PASSWORD" \
+              --verbose
 
-      # - store_artifacts:
-      #     path: /Users/distiller/project/ios/build/ios/ipa
+      - store_artifacts:
+          path: /Users/distiller/project/ios/build/ios/ipa
 
 workflows:
   version: 2
