@@ -53,16 +53,8 @@ jobs:
             echo "----------------------------------------"
             echo "📍 Checking build settings for Bundle ID:"
             
-            # Try to extract Bundle ID using xcodebuild with proper parsing
-            BUNDLE_ID=$(xcodebuild -showBuildSettings -configuration Release | grep "PRODUCT_BUNDLE_IDENTIFIER" | sed -n 's/.*PRODUCT_BUNDLE_IDENTIFIER = \(.*\)/\1/p' | tr -d '[:space:]')
-            
-            # If the first attempt fails, try Info.plist
-            if [ -z "$BUNDLE_ID" ] || [[ "$BUNDLE_ID" == *"$"* ]]; then
-              INFO_PLIST_PATH=$(find . -name "Info.plist" -type f | head -n 1)
-              if [ -n "$INFO_PLIST_PATH" ]; then
-                BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$INFO_PLIST_PATH")
-              fi
-            fi
+            # Extract Bundle ID using xcodebuild with improved parsing
+            BUNDLE_ID=$(xcodebuild -showBuildSettings -configuration Release | grep "PRODUCT_BUNDLE_IDENTIFIER" | sed -n 's/[[:space:]]*PRODUCT_BUNDLE_IDENTIFIER = //p' | tr -d '[:space:]')
             
             # Validate the Bundle ID
             if [ -z "$BUNDLE_ID" ] || [[ "$BUNDLE_ID" == *"$"* ]] || [ "$BUNDLE_ID" = "NO" ]; then
