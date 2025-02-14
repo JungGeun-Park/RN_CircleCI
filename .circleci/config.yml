@@ -150,6 +150,29 @@ jobs:
               -allowProvisioningUpdates
 
       - run:
+          name: Generate Hash
+          command: |
+            # 스크립트에 실행 권한 부여
+            HASH_SCRIPT=$(find . -name "generate_hash" -path "*/AppSealingSDK/*")
+            
+            if [ -z "$HASH_SCRIPT" ]; then
+              echo "❌ ERROR: generate_hash script not found in AppSealingSDK directory"
+              exit 1
+            fi
+            
+            chmod +x "$HASH_SCRIPT"
+            
+            IPA_FILE=$(find "${IPA_OUTPUT_PATH}" -name "*.ipa" -type f)
+            if [ -z "${IPA_FILE}" ]; then
+              echo "❌ ERROR: No IPA file found in ${IPA_OUTPUT_PATH}"
+              exit 1
+            fi
+            echo "✅ Found IPA file: ${IPA_FILE}"
+
+            # IPA 파일 경로를 파라미터로 전달하여 스크립트 실행
+            "$HASH_SCRIPT" "${IPA_FILE}"
+
+      - run:
           name: Upload to App Store Connect
           command: |
             cd /Users/distiller/project/ios
