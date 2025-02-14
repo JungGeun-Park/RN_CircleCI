@@ -18,20 +18,20 @@ jobs:
     steps:
       - checkout
 
-      # - run:
-      #     name: Install Dependencies
-      #     command: |
-      #       brew install node
-      #       brew install watchman
-      #       npm install -g yarn
-      #       cd /Users/distiller/project
-      #       yarn install
+      - run:
+          name: Install Dependencies
+          command: |
+            brew install node
+            brew install watchman
+            npm install -g yarn
+            cd /Users/distiller/project
+            yarn install
 
-      # - run:
-      #     name: Install Cocoapods
-      #     command: |
-      #       cd /Users/distiller/project/ios
-      #       pod install
+      - run:
+          name: Install Cocoapods
+          command: |
+            cd /Users/distiller/project/ios
+            pod install
 
       # - run:
       #     name: Install Apple Certificate
