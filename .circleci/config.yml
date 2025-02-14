@@ -53,12 +53,12 @@ jobs:
             echo "----------------------------------------"
             echo "📍 Checking build settings for Bundle ID:"
             
-            # Release configuration에서 Bundle ID 추출 시도
-            BUNDLE_ID=$(xcodebuild -workspace *.xcworkspace -scheme Runner -configuration Release -showBuildSettings | grep "PRODUCT_BUNDLE_IDENTIFIER" | awk -F ' = ' '{print $2}' | tr -d ' ')
+            # Try to extract Bundle ID from Info.plist first
+            BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" */Info.plist)
             
             if [ -z "$BUNDLE_ID" ] || [ "$BUNDLE_ID" = "NO" ]; then
-              # Info.plist에서 Bundle ID 추출 시도
-              BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" */Info.plist)
+              # If Info.plist method fails, try xcodebuild
+              BUNDLE_ID=$(xcodebuild -showBuildSettings | grep "PRODUCT_BUNDLE_IDENTIFIER" | awk -F ' = ' '{print $2}' | tr -d ' ')
             fi
             
             if [ -z "$BUNDLE_ID" ] || [ "$BUNDLE_ID" = "NO" ]; then
