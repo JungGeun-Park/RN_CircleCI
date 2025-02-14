@@ -122,9 +122,19 @@ jobs:
             cd /Users/distiller/project/ios
             mkdir -p build/ios
             
+            # Get the first available scheme from workspace
+            SCHEME_NAME=$(xcodebuild -list -workspace *.xcworkspace | grep -A1 "Schemes:" | tail -n1 | xargs)
+            
+            if [ -z "$SCHEME_NAME" ]; then
+              echo "❌ ERROR: No scheme found in workspace"
+              exit 1
+            fi
+            
+            echo "✅ Using scheme: ${SCHEME_NAME}"
+            
             xcodebuild archive \
               -workspace *.xcworkspace \
-              -scheme ${BUNDLE_ID} \
+              -scheme "${SCHEME_NAME}" \
               -configuration Release \
               -archivePath build/ios/app.xcarchive \
               -allowProvisioningUpdates \
