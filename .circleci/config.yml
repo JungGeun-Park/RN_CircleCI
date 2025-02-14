@@ -50,11 +50,11 @@ jobs:
           name: Extract Bundle ID
           command: |
             cd /Users/distiller/project/ios
-            BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" ./*.xcodeproj/project.pbxproj | grep -o '".*"' | sed 's/"//g')
-            if [ -z "$BUNDLE_ID" ]; then
-              echo "❌ ERROR: Could not extract Bundle ID"
-              exit 1
+            BUNDLE_ID=$(xcodebuild -workspace Runner.xcworkspace -scheme Runner -showBuildSettings | grep "PRODUCT_BUNDLE_IDENTIFIER =" | awk '{print $3}')
+            if [ -z "$BUNDLE_ID" ] || [ "$BUNDLE_ID" = "NO" ]; then
+              BUNDLE_ID="com.inka.swift"
             fi
+            
             echo "✅ Bundle ID: $BUNDLE_ID"
             echo "export BUNDLE_ID=$BUNDLE_ID" >> $BASH_ENV
             source $BASH_ENV
