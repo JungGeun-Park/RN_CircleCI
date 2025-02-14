@@ -1,64 +1,141 @@
-# This config was automatically generated from your source code
-# Stacks detected: deps:java:android,deps:node:.,deps:ruby:.,test:jest:,tool:gradle:
 version: 2.1
-orbs:
-  node: circleci/node@5
-jobs:
-  test-node:
-    # Install node dependencies and run tests
-    executor: node/default
+
+executors:
+  mac:
+    macos:
+      xcode: 16.0.0
     environment:
-      JEST_JUNIT_OUTPUT_DIR: ./test-results/
+      TEAM_ID: "22X77ENQ2H"
+      APPLE_ID: "puzznic@inka.co.kr"
+      CERTIFICATE_PASSWORD: "123456"
+      APP_SPECIFIC_PASSWORD: "qbrz-hmfz-robj-eohm"
+      PROVISIONING_PROFILE_NAME: "AppSealing Wildcard Distribution Profile"
+    working_directory: /Users/distiller/project
+
+jobs:
+  build_and_deploy:
+    executor: mac
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+
       - run:
-          command: npm install jest-junit
+          name: Install Apple Certificate
+          command: |
+            mkdir -p /Users/distiller/Library/Developer/Xcode/UserData/Provisioning\ Profiles/
+            cp /Users/distiller/project/ios/profile.mobileprovision /Users/distiller/Library/Developer/Xcode/UserData/Provisioning\ Profiles/
+            security create-keychain -p "circle" build.keychain
+            security import /Users/distiller/project/ios/distribution.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+            security list-keychains -s build.keychain
+            security default-keychain -s build.keychain
+            security unlock-keychain -p "circle" build.keychain
+            security set-keychain-settings -t 3600 -u build.keychain
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "circle" build.keychain
+
       - run:
-          name: Run tests
-          command: npm run test --ci --runInBand --reporters=default --reporters=jest-junit
-      - store_test_results:
-          path: ./test-results/
-  test-java:
-    docker:
-      - image: cimg/openjdk:17.0
-    working_directory: ~/project/android
-    steps:
-      - checkout:
-          path: ~/project
+          name: Setup Flutter
+          command: |
+            brew install --cask flutter
+            flutter doctor -v
+            flutter clean
+            flutter pub get
+
       - run:
-          name: Calculate cache key
-          command: |-
-            find . -name 'pom.xml' -o -name 'gradlew*' -o -name '*.gradle*' | \
-                    sort | xargs cat > /tmp/CIRCLECI_CACHE_KEY
-      - restore_cache:
-          key: cache-{{ checksum "/tmp/CIRCLECI_CACHE_KEY" }}
+          name: Build iOS App
+          command: |
+            cd /Users/distiller/project
+            flutter build ios --release --no-codesign
+
       - run:
-          command: ./gradlew check
-      - store_test_results:
-          path: build/test-results
-      - save_cache:
-          key: cache-{{ checksum "/tmp/CIRCLECI_CACHE_KEY" }}
-          paths:
-            - ~/.gradle/caches
+          name: Extract Bundle ID
+          command: |
+            cd /Users/distiller/project/ios
+            BUNDLE_ID=$(grep -A 1 "PRODUCT_BUNDLE_IDENTIFIER =" Runner.xcodeproj/project.pbxproj | tail -n 1 | awk -F '"' '{print $2}')
+            if [ -z "$BUNDLE_ID" ]; then
+              echo "❌ ERROR: Could not extract Bundle ID"
+              exit 1
+            fi
+            echo "✅ Bundle ID: $BUNDLE_ID"
+            echo "export BUNDLE_ID=$BUNDLE_ID" >> $BASH_ENV
+            source $BASH_ENV
+
+      - run:
+          name: Create exportOptions.plist
+          command: |
+            cat > /Users/distiller/project/ios/exportOptions.plist << EOF
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+            <plist version="1.0">
+            <dict>
+                <key>method</key>
+                <string>app-store</string>
+                <key>teamID</key>
+                <string>${TEAM_ID}</string>
+                <key>signingStyle</key>
+                <string>manual</string>
+                <key>signingCertificate</key>
+                <string>iPhone Distribution</string>
+                <key>stripSwiftSymbols</key>
+                <true/>
+                <key>uploadBitcode</key>
+                <false/>
+                <key>uploadSymbols</key>
+                <true/>
+                <key>provisioningProfiles</key>
+                <dict>
+                    <key>${BUNDLE_ID}</key>
+                    <string>${PROVISIONING_PROFILE_NAME}</string>
+                </dict>
+            </dict>
+            </plist>
+            EOF
+
+      - run:
+          name: Increment Build Number
+          command: |
+            buildNumber=$CIRCLE_BUILD_NUM
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $buildNumber" "/Users/distiller/project/ios/Runner/Info.plist"
+            echo "✅ Build number updated to: $buildNumber"
+
+      - run:
+          name: Create and Export Archive
+          command: |
+            cd /Users/distiller/project/ios
+            mkdir -p build/ios
+            
+            xcodebuild archive \
+              -workspace Runner.xcworkspace \
+              -scheme Runner \
+              -configuration Release \
+              -archivePath /Users/distiller/project/ios/build/ios/Runner.xcarchive \
+              -allowProvisioningUpdates \
+              CODE_SIGN_STYLE=Manual \
+              DEVELOPMENT_TEAM=${TEAM_ID} \
+              PROVISIONING_PROFILE_SPECIFIER="${PROVISIONING_PROFILE_NAME}" \
+              CODE_SIGN_IDENTITY="iPhone Distribution" \
+              PRODUCT_BUNDLE_IDENTIFIER="${BUNDLE_ID}"
+
+            xcodebuild -exportArchive \
+              -archivePath /Users/distiller/project/ios/build/ios/Runner.xcarchive \
+              -exportOptionsPlist exportOptions.plist \
+              -exportPath /Users/distiller/project/ios/build/ios/ipa \
+              -allowProvisioningUpdates
+
+      - run:
+          name: Upload to App Store Connect
+          command: |
+            IPA_FILE=$(find /Users/distiller/project/ios/build/ios/ipa -name "*.ipa" -type f)
+            xcrun altool --upload-app \
+              --type ios \
+              --file "${IPA_FILE}" \
+              --username "$APPLE_ID" \
+              --password "$APP_SPECIFIC_PASSWORD" \
+              --verbose
+
       - store_artifacts:
-          path: build/reports
-  deploy:
-    # This is an example deploy job, not actually used by the workflow
-    docker:
-      - image: cimg/base:stable
-    steps:
-      # Replace this with steps to deploy to users
-      - run:
-          name: deploy
-          command: '#e.g. ./deploy.sh'
+          path: /Users/distiller/project/ios/build/ios/ipa
+
 workflows:
-  build-and-test:
+  version: 2
+  build_and_deploy:
     jobs:
-      - test-node
-      - test-java
-    # - deploy:
-    #     requires:
-    #       - test-node
-    #       - test-java
+      - build_and_deploy
