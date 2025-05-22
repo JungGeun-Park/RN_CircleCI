@@ -1414,7 +1414,7 @@ def check_local_hermes_files(rn_version)
                     puts "    [VERSION] Commit hash: #{hash}".yellow
                     puts "    [VERSION] Hermes for React Native: #{hermes_rn_version}".yellow
 
-                    if version_match?(rn_version, hermes_rn_version)
+                    if version_match?(rn_version, hermes_rn_version, hash)
                         puts "    [SUCCESS] Local version matched!".green
                         matching_path = path
                         break  # 첫 번째 일치 파일 사용
