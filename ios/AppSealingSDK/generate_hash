@@ -689,7 +689,29 @@ def sign_app_payload(_app, _folder, generate_info_only)
         end
         puts "    [SUCCESS] Keychain validation passed".green
 
-        # 8. Execute code signing (출력 완전 숨김)
+		# 8. hermes가 존재할 경우 code-sign (경로 안전 처리 및 예외처리)
+		hermes_framework = File.join(app, "Frameworks", "hermes.framework")
+		hermes_binary = File.join(hermes_framework, "hermes")
+		hermes_codesig_dir = File.join(hermes_framework, "_CodeSignature")
+
+		if File.exist?(hermes_binary)
+			puts "    [INFO] Hermes framework found, code-signing hermes binary...".cyan
+
+			# _CodeSignature 디렉터리 삭제
+			if File.exist?(hermes_codesig_dir)
+				FileUtils.rm_rf(hermes_codesig_dir)
+				puts "    [INFO] Removed existing Hermes _CodeSignature directory".yellow
+			end
+
+			# codesign 실행 (배열 형식, 경로 쌍따옴표 불필요)
+			unless system('codesign', '-f', '-s', cert, hermes_framework, out: :close, err: :close)
+				raise "Failed to code-sign Hermes framework: #{hermes_framework}"
+			end
+
+			puts "    [SUCCESS] Hermes framework code-signed".green
+		end
+
+        # 9. Execute code signing (출력 완전 숨김)
         puts "    [INFO] Starting code signing...".cyan
         codesig_dir = File.join(app, "_CodeSignature")
         FileUtils.rm_rf(codesig_dir) if File.exist?(codesig_dir)
@@ -708,7 +730,7 @@ def sign_app_payload(_app, _folder, generate_info_only)
         exit(false)
     end
 end
- 
+
 
 #--------------------------------------------------------------------------------------------
 #  appsealing.lic 파일 읽기
@@ -1385,6 +1407,8 @@ def find_hermes_version_info(app_path, rn_version)
 					else
 						puts "    [ERROR] Version mismatch! (RN #{rn_version} ↔ Hermes #{hermes_rn_version})".red
 					end
+				else
+					puts "    [ERROR] AppSealing hermes Version not found!".red
 				end
 			rescue => e
                 puts "    [ERROR] Failed to read #{path}: #{e.message}".red
@@ -1926,7 +1950,7 @@ begin
 		original_ipa = ARGV[0]
 		resigned_ipa = File.join(
 			File.dirname(original_ipa),
-			"#{File.basename(original_ipa, '.*')}.ipa"
+			"#{File.basename(original_ipa, '.*')}_Resigned.ipa"
 		)
 		puts "  • Output IPA: #{resigned_ipa}"
 
