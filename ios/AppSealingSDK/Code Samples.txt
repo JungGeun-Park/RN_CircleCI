@@ -1,185 +1,16 @@
 --------------------------------------------------------------------------------------------------------------------------------------------------------------
     AppSealing Code Sample
 --------------------------------------------------------------------------------------------------------------------------------------------------------------
+[Run Script Phase Code for Xcode Framework Integration]
 
-[Swift Security Alert GUI Code : ViewController.swift]
-
-override func viewDidAppear(_ animated: Bool)
-{
-    super.viewDidAppear( animated );
-
-    //############################################################## AppSealing Code-Part BEGIN: DO NOT MODIFY THIS LINE !!!
-    let inst: AppSealingInterface = AppSealingInterface();
-    let tamper: Int32 = inst._IsAbnormalEnvironmentDetected();
-    if ( tamper > 0 )
-    {
-        var msg = "Abnormal Environment Detected !!";
-        if ( tamper & DETECTED_JAILBROKEN ) > 0
-            { msg += "\n - Jailbroken"; }
-        if ( tamper & DETECTED_DRM_DECRYPTED ) > 0
-            { msg += "\n - Executable is not encrypted"; }
-        if ( tamper & DETECTED_DEBUG_ATTACHED ) > 0
-            { msg += "\n - App is debugged"; }
-        if ( tamper & ( DETECTED_HASH_INFO_CORRUPTED | DETECTED_HASH_MODIFIED )) > 0
-            { msg += "\n - App integrity corrupted"; }
-        if ( tamper & ( DETECTED_CODESIGN_CORRUPTED | DETECTED_EXECUTABLE_CORRUPTED )) > 0
-            { msg += "\n - App executable has corrupted"; }
-        if ( tamper & DETECTED_CERTIFICATE_CHANGED ) > 0
-            { msg += "\n - App has re-signed"; }
-        if ( tamper & DETECTED_BLACKLIST_CORRUPTED ) > 0
-            { msg += "\n - Blacklist/Whitelist has corrupted or missing"; }
-        if ( tamper & DETECTED_CHEAT_TOOL ) > 0
-            { msg += "\n - Cheat tool has detected"; }
-            
-        let alertController = UIAlertController(title: "AppSealing", message: msg, preferredStyle: .alert );
-        alertController.addAction(UIAlertAction(title: "Confirm", style: .default,
-                                handler: { (action:UIAlertAction!) -> Void in
-                            #if !DEBUG   // Debug mode does not kill app even if security threat has found
-                                    exit(0);
-                            #endif
-                                } ));
-        self.present(alertController, animated: true, completion: nil);
-    }
-
-        AppSealingInterface._NotifySwizzlingDetected( { (msg: String?) -> () in
-            let alertController = UIAlertController( title: "AppSealing Security", message: msg, preferredStyle: .alert )
-            alertController.addAction( UIAlertAction( title: "Confirm", style: .default,
-                                                      handler: { ( action:UIAlertAction! ) -> Void in
-                            #if !DEBUG
-                                exit(0);
-                            #endif
-            } ));
-            self.present( alertController, animated: true, completion: nil );
-        }
-        );
-
-
-    //############################################################## AppSealing Code-Part END: DO NOT MODIFY THIS LINE !!!
-}
-
---------------------------------------------------------------------------------------------------------------------------------------------------------------
-[Swift Security Alert GUI Code : AppDelegate.swift]
-
-func application(_ application: UIApplication, didFinishLaunchingWithOptions
-     launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool
-{
-    // Override point for customization after application launch.
-
-      //############################################################## AppSealing Code-Part BEGIN: DO NOT MODIFY THIS LINE !!!
-      let inst: AppSealingInterface = AppSealingInterface();
-      let tamper: Int32 = inst._IsAbnormalEnvironmentDetected();
-      if ( tamper > 0 )
-      {
-          var msg = "Abnormal Environment Detected !!";
-          if ( tamper & DETECTED_JAILBROKEN ) > 0
-              { msg += "\n - Jailbroken"; }
-          if ( tamper & DETECTED_DRM_DECRYPTED ) > 0
-              { msg += "\n - Executable is not encrypted"; }
-          if ( tamper & DETECTED_DEBUG_ATTACHED ) > 0
-              { msg += "\n - App is debugged"; }
-          if ( tamper & ( DETECTED_HASH_INFO_CORRUPTED | DETECTED_HASH_MODIFIED )) > 0
-              { msg += "\n - App integrity corrupted"; }
-          if ( tamper & ( DETECTED_CODESIGN_CORRUPTED | DETECTED_EXECUTABLE_CORRUPTED )) > 0
-              { msg += "\n - App executable has corrupted"; }
-          if ( tamper & DETECTED_CERTIFICATE_CHANGED ) > 0
-              { msg += "\n - App has re-signed"; }
-          if ( tamper & DETECTED_BLACKLIST_CORRUPTED ) > 0
-              { msg += "\n - Blacklist/Whitelist has corrupted or missing"; }
-          if ( tamper & DETECTED_CHEAT_TOOL ) > 0
-              { msg += "\n - Cheat tool has detected"; }
-
-          let alertController = UIAlertController(title: "AppSealing", message: msg, preferredStyle: .alert );
-          alertController.addAction(UIAlertAction(title: "Confirm", style: .default,
-                                  handler: { (action:UIAlertAction!) -> Void in
-                              #if !DEBUG   // Debug mode does not kill app even if security threat has found
-                                      exit(0);
-                              #endif
-                                  } ));
-          DispatchQueue.main.async {
-              self.window?.rootViewController?.present( alertController, animated: true, completion: nil)
-          };
-      }
-
-      AppSealingInterface._NotifySwizzlingDetected( { (msg: String?) -> () in
-          let alertController = UIAlertController( title: "AppSealing Security", message: msg, preferredStyle: .alert );
-          alertController.addAction( UIAlertAction( title: "Confirm", style: .default,
-                                                      handler: { ( action:UIAlertAction! ) -> Void in
-  #if DEBUG
-  #else
-              exit(0);
-  #endif
-          } ));
-          
-          DispatchQueue.main.async {
-              self.window?.rootViewController?.present( alertController, animated: true, completion: nil )
-          };
-      });
-
-      //############################################################## AppSealing Code-Part END: DO NOT MODIFY THIS LINE !!!
-    return true;
-}
-
---------------------------------------------------------------------------------------------------------------------------------------------------------------
-[Objective-C Security Alert GUI Code : ViewController.mm]
-
-#include "AppsealingiOS.h"
--(void)viewDidAppear:(BOOL)animated
-{
-    [super viewDidAppear:animated];
-
-    //############################################################## AppSealing Code-Part BEGIN: DO NOT MODIFY THIS LINE !!!
-    int tamper = ObjC_IsAbnormalEnvironmentDetected();
-    if ( tamper > 0 )
-    {
-        NSString* msg = @"Abnormal Environment Detected !!";
-        if (( tamper & DETECTED_JAILBROKEN ) > 0 )
-            msg = [msg stringByAppendingString:@"\n - Jailbroken"];
-        if (( tamper & DETECTED_DRM_DECRYPTED ) > 0 )
-            msg = [msg stringByAppendingString:@"\n - Executable is not encrypted"];
-        if (( tamper & DETECTED_DEBUG_ATTACHED ) > 0 )
-            msg = [msg stringByAppendingString:@"\n - App is debugged"];
-        if (( tamper & ( DETECTED_HASH_INFO_CORRUPTED | DETECTED_HASH_MODIFIED )) > 0 )
-            msg = [msg stringByAppendingString:@"\n - App integrity corrupted"];
-        if (( tamper & ( DETECTED_CODESIGN_CORRUPTED | DETECTED_EXECUTABLE_CORRUPTED )) > 0 )
-            msg = [msg stringByAppendingString:@"\n - App executable has corrupted"];
-        if (( tamper & DETECTED_CERTIFICATE_CHANGED ) > 0 )
-            msg = [msg stringByAppendingString:@"\n - App has re-signed"];
-        if (( tamper & DETECTED_BLACKLIST_CORRUPTED ) > 0 )
-            msg = [msg stringByAppendingString:@"\n - Blacklist/Whitelist has corrupted or missing"];
-        if (( tamper & DETECTED_CHEAT_TOOL ) > 0 )
-            msg = [msg stringByAppendingString:@"\n - Cheat tool has detected"];
-
-        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"AppSealing"
-                                       message:msg
-                                       preferredStyle:UIAlertControllerStyleAlert];
-        UIAlertAction *confirm = [UIAlertAction actionWithTitle:@"Confirm"
-                                     style:UIAlertActionStyleDefault
-                                     handler:^(UIAlertAction * _Nonnull action) {
-                                #if !DEBUG && !defined(DEBUG) // Debug mode does not kill app even if security threat has found
-                                        exit(0);
-                                #endif
-                                    }];
-        [alert addAction:confirm];
-        [self presentViewController:alert animated:YES completion:nil];
-    }
-
-
-    [AppSealingInterface _NotifySwizzlingDetected:^(NSString* msg){
-        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"AppSealing"
-                                       message:msg
-                                       preferredStyle:UIAlertControllerStyleAlert];
-        UIAlertAction *confirm = [UIAlertAction actionWithTitle:@"Confirm"
-                                     style:UIAlertActionStyleDefault
-                                     handler:^(UIAlertAction * _Nonnull action) {
-                                #if !DEBUG && !defined(DEBUG) // Debug mode does not kill app even if security threat has found
-                                        exit(0);
-                                #endif
-                                    }];
-        [alert addAction:confirm];
-        [self presentViewController:alert animated:YES completion:nil];
-    }];
-    //############################################################## AppSealing Code-Part END: DO NOT MODIFY THIS LINE !!!
-}
+if [ "${CONFIGURATION}" == "Debug" ]; then
+    rm -R "${TARGET_BUILD_DIR}/AppSealingFramework.framework"
+    if [[ "${SDKROOT}" == *"Simulator"* ]]; then
+        cp -R "${SRCROOT}/AppSealingFramework/Debug/AppSealingFramework.xcframework/ios-arm64_x86_64-simulator/AppSealingFramework.framework" "${TARGET_BUILD_DIR}/"
+    else
+        cp -R "${SRCROOT}/AppSealingFramework/Debug/AppSealingFramework.xcframework/ios-arm64/AppSealingFramework.framework" "${TARGET_BUILD_DIR}/"
+    fi
+fi
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------
 [React Native (up to 0.70.x) Security Alert GUI Code : AppDelegate.mm]
@@ -320,32 +151,48 @@ catch( e )
     console.log( "### AppSealing Security Check : " + e.ToString() );
 }
 
-AppSealingPeriodicAlerted = false;
-function AppSealingPeriodicCheck() {
-    if( AppSealingPeriodicAlerted ){
+const PERIODIC_DETECTED_START_CODE      = 0;
+const PERIODIC_DETECTED_JAILBROKEN      = 1;
+const PERIODIC_DETECTED_METHOD_SWIZZLE  = 2;
+const PERIODIC_DETECTED_METHOD_HOOK     = 3;
+const PERIODIC_DETECTED_CHEAT_TOOL      = 4;
+const PERIODIC_INTEGRITY_CHECK_FAILED   = 5;
+const PERIODIC_DETECTED_ABNORMAL_ENV    = 6;
+const PERIODIC_DETECTED_LAST_CODE       = 7;
+
+let AppSealingPeriodicAlerted = false;
+function AppSealingPeriodicCheck()
+ {
+    if ( AppSealingPeriodicAlerted )
         return;
-    }
+    
     try
     {
         const {AppSealingInterfaceBridge} = NativeModules;
 
         let ret = parseInt( AppSealingInterfaceBridge.IsSwizzlingDetectedReturnRN() );
         
-        if ( ret >= 1 && ret <= 3 )
+        if ( ret > PERIODIC_DETECTED_START_CODE && ret < PERIODIC_DETECTED_LAST_CODE )
         {
             // Show GUI
             let msg = "\n--------------------------------------"
                     + "\nAbnormal Environment Detected !!"
                     + "\n--------------------------------------\n";
-            if ( ret == 1 )
+            if ( ret == PERIODIC_DETECTED_JAILBROKEN )
                 msg += "\n - Jailbroken";
-            if ( ret == 2 )
+            if ( ret == PERIODIC_DETECTED_METHOD_SWIZZLE )
                 msg += "\n - Method Swizzling";
-            if ( ret == 3 )
+            if ( ret == PERIODIC_DETECTED_METHOD_HOOK )
                 msg += "\n - Method Hooking";
+            if ( ret == PERIODIC_DETECTED_CHEAT_TOOL )
+                msg += "\n - Cheat Tool found";
+            if ( ret == PERIODIC_INTEGRITY_CHECK_FAILED )
+                msg += "\n - Integrity check failed";
+            if ( ret == PERIODIC_DETECTED_ABNORMAL_ENV )
+                msg += "\n - Abnormal environment found";
     
             console.log( "AppSealing Security Threat: " + msg );
-            Alert.alert( "AppSealing Security Threat", msg, [{ text: "Confirm", onPress: () => { AppSealingInterfaceBridge.ExitApp(); }}], { cancelable: false } );
+            setTimeout( ()=> { Alert.alert( "AppSealing Security Threat", msg, [{ text: "Confirm", onPress: () => { AppSealingInterfaceBridge.ExitApp(); }}], { cancelable: false } ); }, 500 );
 
             AppSealingPeriodicAlerted = true;
         }    
@@ -355,168 +202,188 @@ function AppSealingPeriodicCheck() {
         console.log( "### AppSealing Security Check : " + e.ToString() );
     }
 }
-setInterval(AppSealingPeriodicCheck, 2500); // 2.5ms
+setInterval( AppSealingPeriodicCheck, 2000 ); // 2ms
 //############################################################## AppSealing Code-Part END: DO NOT MODIFY THIS LINE !!!
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------
-[Xamarin Security Alert GUI Code : ViewController.cs]
+[Fastlane Fastfile]
 
-using System.Runtime.InteropServices;
-using System.Text;
-using CoreFoundation;
+default_platform(:ios)
 
-public partial class ViewController : UIViewController
-{
-    //############################################################## AppSealing Decl-Part BEGIN: DO NOT MODIFY THIS LINE !!!
-    [System.Runtime.InteropServices.DllImport("__Internal")]
-    extern static public int Unity_IsAbnormalEnvironmentDetected();
+before_all do
+  ENV["FASTLANE_USER"] = "<Your apple ID>"
+  ENV["FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD"] = "<Your apple app-specific-password>"
+  ENV['PROFILE'] = "<Your provisioning profile name for distribution>"
+end
 
-    [System.Runtime.InteropServices.DllImport("__Internal", CallingConvention = CallingConvention.Cdecl)]
-    extern static public int Unity_GetAppSealingDeviceID(StringBuilder deviceIDBuffer);
+platform :ios do
+  desc "Push a new beta build to TestFlight"
+  lane :beta do
+    # 프로젝트 루트 경로 가져오기
+    project_root = File.expand_path("..", __dir__)
 
-    [System.Runtime.InteropServices.DllImport("__Internal", CallingConvention = CallingConvention.Cdecl)]
-    extern static public int Unity_GetEncryptedCredential(StringBuilder credential);
+    # Xcode 프로젝트 또는 워크스페이스 파일 동적으로 검색
+    xcode_file_path = Dir.glob(File.join(project_root, "*.xcworkspace")).first || Dir.glob(File.join(project_root, "*.xcodeproj")).first
+    if xcode_file_path.nil?
+      UI.user_error!("[AppSealing] No Xcode project or workspace found in the project root directory: #{project_root}")
+    end
 
-    [System.Runtime.InteropServices.DllImport("__Internal")]
-    extern static public int Unity_IsSwizzlingDetected();
-    //############################################################## AppSealing Decl-Part END: DO NOT MODIFY THIS LINE !!!
+    # 프로젝트 이름 및 스킴 자동 추출
+    project_name = File.basename(xcode_file_path, File.extname(xcode_file_path)) # 확장자를 제거한 프로젝트 이름
 
-    public FirstViewController (IntPtr handle) : base (handle)
-    {
+    # 스킴 목록 가져오기
+    scheme_list = []
+    Dir.chdir(File.dirname(xcode_file_path)) do
+      scheme_list_command = "xcodebuild -list -#{xcode_file_path.end_with?('.xcworkspace') ? 'workspace' : 'project'} #{File.basename(xcode_file_path)}"
+      scheme_list_output = sh(scheme_list_command).lines.map(&:strip).reject { |line| line.empty? }
+      scheme_list_output.each do |line|
+        if line.start_with?("Schemes:")
+          next
+        elsif line.start_with?("Targets:")
+          break
+        else
+          scheme_list << line
+        end
+      end
+    end
+
+    if scheme_list.empty?
+      UI.user_error!("[AppSealing] No schemes found in the Xcode project or workspace.")
+    end
+
+    # 프로젝트 이름과 가장 유사한 스킴 자동 선택
+    scheme_name = scheme_list.max_by do |scheme|
+      similarity = levenshtein_distance(project_name, scheme)
+      -similarity # 낮은 거리(유사도 높음)를 우선으로 선택
+    end
+
+    # 번들 ID 동적으로 추출
+    bundle_id = ""
+    Dir.chdir(File.dirname(xcode_file_path)) do
+      bundle_id_command = "xcodebuild -showBuildSettings -scheme #{scheme_name} | grep 'PRODUCT_BUNDLE_IDENTIFIER' | awk -F ' = ' '{print $2}'"
+      bundle_id_output = sh(bundle_id_command).lines.map(&:strip).reject { |line| line.include?("WARNING") || line.empty? }
+      bundle_id = bundle_id_output.last.strip
+    end
+
+    if bundle_id.empty?
+      UI.user_error!("[AppSealing] Failed to retrieve Bundle ID from Xcode project.")
+    end
+
+    # Team ID 동적으로 추출
+    team_id = ""
+    Dir.chdir(File.dirname(xcode_file_path)) do
+      team_id_command = "xcodebuild -showBuildSettings -scheme #{scheme_name} | grep 'DEVELOPMENT_TEAM' | awk -F ' = ' '{print $2}'"
+      team_id_output = sh(team_id_command).lines.map(&:strip).reject { |line| line.include?("WARNING") || line.empty? }
+      team_id = team_id_output.last.strip
+    end
+
+    if team_id.empty?
+      UI.user_error!("[AppSealing] Failed to retrieve Team ID from Xcode project.")
+    end
+
+    UI.message "[AppSealing] Project Name: #{project_name}"
+    UI.message "[AppSealing] Scheme Name: #{scheme_name}"
+    UI.message "[AppSealing] Bundle ID: #{bundle_id}"
+    UI.message "[AppSealing] Team ID: #{team_id}"
+
+    # 빌드 및 IPA 파일 생성
+    archive_path = File.join(project_root, "build", "#{project_name}.xcarchive")
+    ipa_output_path = File.join(project_root, "build")
+
+    # build_ios_app 호출 시 workspace와 project 옵션 분리 처리
+    build_options = {
+      scheme: scheme_name,
+      export_method: "app-store",
+      clean: true,
+      output_directory: ipa_output_path,
+      output_name: "#{project_name}.ipa",
+      export_options: {
+        provisioningProfiles: {
+          bundle_id => ENV["PROFILE"]
+        }
+      }
     }
 
-    public override void ViewDidLoad ()
-    {
-        base.ViewDidLoad ();
-        // Perform any additional setup after loading the view, typically from a nib.
-    }
+    if xcode_file_path.end_with?(".xcworkspace")
+      build_options[:workspace] = xcode_file_path
+      build_options[:project] = nil
+    else
+      build_options[:project] = xcode_file_path
+      build_options[:workspace] = nil
+    end
 
-    public override void ViewDidAppear (bool animated)
-    {
-        base.ViewDidAppear( animated );
+    build_ios_app(build_options)
 
-        //############################################################## AppSealing Code-Part BEGIN: DO NOT MODIFY THIS LINE !!!
-        StringBuilder appSealingDeviceID = new StringBuilder(64);
-        int result = 0;
+    # .ipa 파일 경로 설정
+    ipa_path = File.join(ipa_output_path, "#{project_name}.ipa")
 
-        result = Unity_GetAppSealingDeviceID(appSealingDeviceID);
-        if (result == 0)
-        {
-            string strAppSealingDeviceID = appSealingDeviceID.ToString();
-            System.Console.WriteLine("AppSealing DeviceID: " + strAppSealingDeviceID);
-            var okAlertController = UIAlertController.Create( "AppSealing DeviceID", strAppSealingDeviceID, UIAlertControllerStyle.Alert );
-            okAlertController.AddAction (UIAlertAction.Create ("OK", UIAlertActionStyle.Default, null));
-            //PresentViewController( okAlertController, true, null );
-        }
+    unless File.exist?(ipa_path)
+      UI.user_error!("[AppSealing] IPA file not found at path: #{ipa_path}")
+    end
 
-        StringBuilder credential = new StringBuilder(290);
-        //result = Unity_GetEncryptedCredential(credential);
+    UI.message "[AppSealing] IPA Path: #{ipa_path}"
 
-        const int DETECTED_JAILBROKEN = 0x00000001;
-        const int DETECTED_DRM_DECRYPTED = 0x00000002;
-        const int DETECTED_DEBUG_ATTACHED = 0x00000004;
-        const int DETECTED_HASH_INFO_CORRUPTED = 0x00000008;
-        const int DETECTED_CODESIGN_CORRUPTED = 0x00000010;
-        const int DETECTED_HASH_MODIFIED = 0x00000020;
-        const int DETECTED_EXECUTABLE_CORRUPTED = 0x00000040;
-        const int DETECTED_CERTIFICATE_CHANGED = 0x00000080;
-        const int DETECTED_BLACKLIST_CORRUPTED = 0x00000100;
-        const int DETECTED_CHEAT_TOOL = 0x00000200;
+    # generate_hash 스크립트 경로 동적 검색 및 실행
+    generate_hash_script = Dir.glob(File.join(project_root, "**/generate_hash")).first
 
-        try
-        {
-            result = Unity_IsAbnormalEnvironmentDetected();
-            if (result > 0)
-            {
-                // Show GUI
-                String msg = "Abnormal Environment Detected !!";
-                if ((result & DETECTED_JAILBROKEN) > 0)
-                    msg += "\n - Jailbroken";
-                if ((result & DETECTED_DRM_DECRYPTED) > 0)
-                    msg += "\n - Executable is not encrypted";
-                if ((result & DETECTED_DEBUG_ATTACHED) > 0)
-                    msg += "\n - App is debugged";
-                if ((result & DETECTED_HASH_INFO_CORRUPTED) > 0 || (result & DETECTED_HASH_MODIFIED) > 0)
-                    msg += "\n - App integrity has broken";
-                if ((result & DETECTED_CODESIGN_CORRUPTED) > 0 || (result & DETECTED_EXECUTABLE_CORRUPTED) > 0)
-                    msg += "\n - App executable has corrupted";
-                if ((result & DETECTED_CERTIFICATE_CHANGED) > 0)
-                    msg += "\n - App has re-signed";
-                if ((result & DETECTED_BLACKLIST_CORRUPTED) > 0)
-                    msg += "\n - Blacklist/Whitelist has corrupted or missing";
-                if ((result & DETECTED_CHEAT_TOOL) > 0)
-                    msg += "\n - Cheat tool detected";
-                
-                //Create Alert
-                var okAlertController = UIAlertController.Create( "AppSealing Security Threat", msg, UIAlertControllerStyle.Alert );
-                okAlertController.AddAction (UIAlertAction.Create ("OK", UIAlertActionStyle.Default, (action) =>
-                #if DEBUG
-                    Console.WriteLine("### Not exit app in debug mode")));
-                #else
-                    System.Environment.Exit( 0 )));
-                #endif
-                    PresentViewController( okAlertController, true, null );
-            }
-        }
-        catch (EntryPointNotFoundException e)
-        {
-            Console.WriteLine("### AppSealing Security Check : " + e.ToString());
-        }
+    if generate_hash_script.nil?
+      if File.exist?(File.join(project_root, "AppSealingSDK", "Tools", "generate_hash"))
+        # 일반 프로젝트용 경로
+        generate_hash_script = File.join(project_root, "AppSealingSDK", "Tools", "generate_hash")
+      else
+        # React Native 프로젝트용 경로
+        generate_hash_script = File.join(project_root, "AppSealingSDK", "generate_hash")
+      end
+    end
+      
+    unless File.exist?(generate_hash_script)
+      UI.user_error!("[AppSealing] generate_hash script not found at path: #{generate_hash_script}")
+    end
+    
+    unless File.executable?(generate_hash_script)
+      sh("chmod +x '#{generate_hash_script}'")
+    end
+    
+    sh("#{generate_hash_script} #{File.absolute_path(ipa_path)}")
 
+     # Step 2: Upload the IPA to TestFlight with callback
+     begin
+       upload_to_testflight(
+         ipa: ipa_path,
+         skip_waiting_for_build_processing: true, # 빌드 처리 대기 시간 생략
+       )      
+       UI.success("[AppSealing] Upload to TestFlight completed successfully!")
+       
+     rescue => e
+       UI.error("[AppSealing] Upload to TestFlight failed with error: #{e.message}")
+       raise e
+       
+     ensure
+       # Always delete the build directory, even if an error occurs
+       if Dir.exist?(ipa_output_path)
+         UI.message("[AppSealing] Deleting build directory: #{ipa_output_path}")
+         FileUtils.rm_rf(ipa_output_path)
+         UI.message("[AppSealing] Build directory deleted.")
+       else
+         UI.message("[AppSealing] Build directory not found or already deleted.")
+       end
+     end
+   end
+end
+def levenshtein_distance(str1, str2)
+  m = str1.length + 1
+  n = str2.length + 1
+  d = Array.new(m) { Array.new(n, 0) }
 
-        try
-        {
-            DispatchQueue.GetGlobalQueue(DispatchQueuePriority.Default).DispatchAsync(() =>
-            {
-                int ret = Unity_IsSwizzlingDetected();
-                if (ret == 1) // jailbreak detected
-                    DispatchQueue.MainQueue.DispatchAsync(() =>
-                    {
-                        var okAlertController = UIAlertController.Create("AppSealing Security Threat", "Jailbreak detected !!!", UIAlertControllerStyle.Alert);
-                        okAlertController.AddAction(UIAlertAction.Create("OK", UIAlertActionStyle.Default, (action) =>
-#if DEBUG
-                        Console.WriteLine("### Not exit app in debug mode")));
-#else
-                System.Environment.Exit( 0 )));
-#endif
-                        PresentViewController(okAlertController, true, null);
-                    });
-                if (ret == 2) // swizzling detected
-                    DispatchQueue.MainQueue.DispatchAsync(() =>
-                    {
-                        var okAlertController = UIAlertController.Create("AppSealing Security Threat", "Swizzling detected !!!", UIAlertControllerStyle.Alert);
-                        okAlertController.AddAction(UIAlertAction.Create("OK", UIAlertActionStyle.Default, (action) =>
-#if DEBUG
-                        Console.WriteLine("### Not exit app in debug mode")));
-#else
-                System.Environment.Exit( 0 )));
-#endif
-                        PresentViewController(okAlertController, true, null);
-                    });
-                if (ret == 3) // hooking detected
-                    DispatchQueue.MainQueue.DispatchAsync(() =>
-                    {
-                        var okAlertController = UIAlertController.Create("AppSealing Security Threat", "Hooking detected !!!", UIAlertControllerStyle.Alert);
-                        okAlertController.AddAction(UIAlertAction.Create("OK", UIAlertActionStyle.Default, (action) =>
-#if DEBUG
-                        Console.WriteLine("### Not exit app in debug mode")));
-#else
-                   System.Environment.Exit( 0 )));
-#endif
-                        PresentViewController(okAlertController, true, null);
-                    });
-            });
-        }
-        catch (EntryPointNotFoundException e)
-        {
-            Console.WriteLine("### AppSealing Security Loop : " + e.ToString());
-        }
-        //############################################################## AppSealing Code-Part END: DO NOT MODIFY THIS LINE !!!
-    }
+  (1...m).each { |i| d[i][0] = i }
+  (1...n).each { |j| d[0][j] = j }
 
-    public override void DidReceiveMemoryWarning ()
-    {
-        base.DidReceiveMemoryWarning ();
-        // Release any cached data, images, etc that aren't in use.
-    }
-}
+  (1...m).each do |i|
+    (1...n).each do |j|
+      cost = str1[i - 1] == str2[j - 1] ? 0 : 1
+      d[i][j] = [d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost].min
+    end
+  end
+
+  d[m - 1][n - 1]
+end
