@@ -1581,8 +1581,8 @@ begin
             puts "\n    [INFO] Replacing app Hermes files...".cyan
             app_hermes_paths.each do |dest_path|
                 begin
-                    FileUtils.cp(local_hermes_path, dest_path, verbose: true)
-                    puts "    [COPY] #{dest_path} updated".green
+                    FileUtils.cp(local_hermes_path, dest_path)
+                    puts "    [COPY] #{dest_path} updated"
                 rescue => e
                     puts "    [ERROR] Failed to copy: #{e.message}".red
                 end
@@ -1950,7 +1950,7 @@ begin
 		original_ipa = ARGV[0]
 		resigned_ipa = File.join(
 			File.dirname(original_ipa),
-			"#{File.basename(original_ipa, '.*')}_Resigned.ipa"
+			"#{File.basename(original_ipa, '.*')}.ipa"
 		)
 		puts "  • Output IPA: #{resigned_ipa}"
 
